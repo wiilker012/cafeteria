@@ -1,6 +1,6 @@
 """
-Sistema de PDV (Ponto de Venda) e Controle Financeiro para Cafeteria
-Versão 2.0 — Com gestão completa de estoque e interface aprimorada.
+Sistema de PDV - Cafeteria
+Versão 3.0 — Paleta terrosa, sidebar com botões, métricas corrigidas.
 """
 
 import streamlit as st
@@ -21,57 +21,169 @@ st.set_page_config(
 DB_PATH = "cafeteria.db"
 
 # =========================================================
-# CSS PERSONALIZADO — deixa a interface mais profissional
+# CSS — Paleta terrosa/pastel + correção das métricas
 # =========================================================
 st.markdown("""
-    <style>
-        /* Botão primário (verde) */
-        div.stButton > button[kind="primary"] {
-            background-color: #2e7d32;
-            color: white;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            width: 100%;
-        }
-        div.stButton > button[kind="primary"]:hover {
-            background-color: #1b5e20;
-        }
+<style>
+    /* ---- Paleta de cores ---- */
+    :root {
+        --marrom-escuro:   #6B4C35;
+        --marrom-medio:    #8B6347;
+        --marrom-claro:    #C4956A;
+        --creme:           #F5ECD7;
+        --bege:            #EDE0CC;
+        --areia:           #D9C4A8;
+        --terracota:       #B5714E;
+        --terracota-claro: #D4906E;
+        --verde-sage:      #7A8C6E;
+        --branco-quente:   #FDF6EC;
+        --texto-escuro:    #3E2A1A;
+        --texto-medio:     #6B4C35;
+    }
 
-        /* Botão secundário (cinza escuro) */
-        div.stButton > button[kind="secondary"] {
-            background-color: #37474f;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            width: 100%;
-        }
-        div.stButton > button[kind="secondary"]:hover {
-            background-color: #263238;
-        }
+    /* ---- Fundo geral ---- */
+    .stApp {
+        background-color: var(--branco-quente);
+    }
 
-        /* Card de métrica */
-        [data-testid="stMetric"] {
-            background-color: #f5f5f5;
-            border-radius: 10px;
-            padding: 12px 16px;
-            border-left: 4px solid #2e7d32;
-        }
+    /* ---- Sidebar ---- */
+    section[data-testid="stSidebar"] {
+        background-color: var(--marrom-escuro) !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: var(--creme) !important;
+    }
 
-        /* Cabeçalho da sidebar */
-        section[data-testid="stSidebar"] .stRadio label {
-            font-size: 1rem;
-        }
+    /* ---- Botões da sidebar ---- */
+    section[data-testid="stSidebar"] .stButton > button {
+        background-color: rgba(255,255,255,0.08);
+        color: var(--creme) !important;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        width: 100%;
+        text-align: left;
+        padding: 0.6rem 1rem;
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+        transition: background 0.2s;
+    }
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background-color: rgba(255,255,255,0.18) !important;
+        border-color: var(--areia) !important;
+    }
 
-        /* Tabela de últimas vendas */
-        .vendas-recentes {
-            background: #fafafa;
-            border-radius: 10px;
-            padding: 1rem;
-            border: 1px solid #e0e0e0;
-        }
-    </style>
+    /* Botão ativo na sidebar */
+    section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background-color: var(--marrom-claro) !important;
+        color: white !important;
+        border-color: var(--marrom-claro) !important;
+        font-weight: bold;
+    }
+
+    /* ---- Botão primário (confirmar venda etc.) ---- */
+    .stButton > button[kind="primary"] {
+        background-color: var(--marrom-escuro) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background-color: var(--marrom-medio) !important;
+    }
+
+    /* ---- Botão secundário ---- */
+    .stButton > button[kind="secondary"] {
+        background-color: var(--bege) !important;
+        color: var(--texto-escuro) !important;
+        border: 1px solid var(--areia) !important;
+        border-radius: 8px;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        background-color: var(--areia) !important;
+    }
+
+    /* ---- MÉTRICAS — corrigidas para funcionar em tema claro e escuro ---- */
+    [data-testid="stMetric"] {
+        background-color: var(--creme);
+        border-radius: 12px;
+        padding: 16px 20px;
+        border-left: 5px solid var(--marrom-claro);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    [data-testid="stMetricLabel"] p {
+        color: var(--marrom-medio) !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: var(--marrom-escuro) !important;
+        font-weight: 800 !important;
+        font-size: 1.6rem !important;
+    }
+
+    /* ---- Containers / cards ---- */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: var(--creme) !important;
+        border: 1px solid var(--areia) !important;
+        border-radius: 12px !important;
+    }
+
+    /* ---- Títulos ---- */
+    h1, h2, h3 {
+        color: var(--marrom-escuro) !important;
+    }
+
+    /* ---- Tabs ---- */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: var(--bege);
+        border-radius: 10px;
+        padding: 4px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: var(--marrom-medio) !important;
+        border-radius: 8px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: var(--marrom-escuro) !important;
+        color: white !important;
+    }
+
+    /* ---- Inputs ---- */
+    input, textarea, select,
+    [data-testid="stNumberInputContainer"] input {
+        background-color: var(--branco-quente) !important;
+        border-color: var(--areia) !important;
+        color: var(--texto-escuro) !important;
+        border-radius: 8px !important;
+    }
+
+    /* ---- Selectbox ---- */
+    [data-testid="stSelectbox"] > div > div {
+        background-color: var(--branco-quente) !important;
+        border-color: var(--areia) !important;
+        border-radius: 8px !important;
+        color: var(--texto-escuro) !important;
+    }
+
+    /* ---- Dataframe ---- */
+    [data-testid="stDataFrame"] {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--areia);
+    }
+
+    /* ---- Alertas ---- */
+    [data-testid="stAlert"] {
+        border-radius: 10px;
+    }
+
+    /* ---- Divider ---- */
+    hr {
+        border-color: var(--areia) !important;
+    }
+</style>
 """, unsafe_allow_html=True)
 
 
@@ -80,20 +192,14 @@ st.markdown("""
 # =========================================================
 
 def get_connection():
-    """Cria e retorna uma conexão com o banco SQLite."""
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
 def init_db():
-    """
-    Inicializa o banco: cria tabelas se não existirem.
-    Nenhum produto pré-cadastrado — o usuário cadastra os seus próprios.
-    """
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS produtos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,7 +208,6 @@ def init_db():
             estoque INTEGER NOT NULL DEFAULT 0
         )
     """)
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS vendas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,13 +219,11 @@ def init_db():
             forma_pagamento TEXT NOT NULL
         )
     """)
-
     conn.commit()
     conn.close()
 
 
 def carregar_produtos():
-    """Retorna DataFrame com todos os produtos."""
     conn = get_connection()
     df = pd.read_sql_query("SELECT * FROM produtos ORDER BY nome", conn)
     conn.close()
@@ -128,7 +231,6 @@ def carregar_produtos():
 
 
 def carregar_vendas():
-    """Retorna DataFrame com histórico de vendas."""
     conn = get_connection()
     df = pd.read_sql_query("SELECT * FROM vendas ORDER BY id DESC", conn)
     conn.close()
@@ -136,7 +238,6 @@ def carregar_vendas():
 
 
 def registrar_venda(produto_nome, quantidade, preco_unitario, forma_pagamento):
-    """Registra venda e dá baixa no estoque em uma única transação."""
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -146,21 +247,18 @@ def registrar_venda(produto_nome, quantidade, preco_unitario, forma_pagamento):
             return False, "Produto não encontrado."
         if row[0] < quantidade:
             return False, f"Estoque insuficiente. Disponível: {row[0]} unidade(s)."
-
         valor_total = round(quantidade * preco_unitario, 2)
         data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         cursor.execute("""
             INSERT INTO vendas (data_hora, produto, quantidade, valor_unitario, valor_total, forma_pagamento)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (data_hora, produto_nome, quantidade, preco_unitario, valor_total, forma_pagamento))
-
         cursor.execute(
             "UPDATE produtos SET estoque = estoque - ? WHERE nome = ?",
             (quantidade, produto_nome)
         )
         conn.commit()
-        return True, f"Venda registrada! Total: R$ {valor_total:.2f}"
+        return True, f"✅ Venda registrada! Total: R$ {valor_total:.2f}"
     except Exception as e:
         conn.rollback()
         return False, f"Erro: {e}"
@@ -169,7 +267,6 @@ def registrar_venda(produto_nome, quantidade, preco_unitario, forma_pagamento):
 
 
 def cadastrar_produto(nome, preco, estoque):
-    """Cadastra novo produto."""
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -186,7 +283,6 @@ def cadastrar_produto(nome, preco, estoque):
 
 
 def remover_produto(produto_id):
-    """Remove um produto do estoque pelo ID."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM produtos WHERE id = ?", (produto_id,))
@@ -194,20 +290,7 @@ def remover_produto(produto_id):
     conn.close()
 
 
-def ajustar_estoque(produto_id, novo_estoque):
-    """Define manualmente a quantidade em estoque de um produto."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE produtos SET estoque = ? WHERE id = ?",
-        (novo_estoque, produto_id)
-    )
-    conn.commit()
-    conn.close()
-
-
 def adicionar_estoque(produto_id, quantidade):
-    """Soma quantidade ao estoque atual de um produto."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -219,10 +302,6 @@ def adicionar_estoque(produto_id, quantidade):
 
 
 def remover_estoque(produto_id, quantidade):
-    """
-    Remove quantidade do estoque manualmente.
-    Retorna False se a quantidade pedida for maior que o estoque atual.
-    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT estoque FROM produtos WHERE id = ?", (produto_id,))
@@ -236,7 +315,7 @@ def remover_estoque(produto_id, quantidade):
     )
     conn.commit()
     conn.close()
-    return True, "Estoque atualizado."
+    return True, "Estoque atualizado com sucesso."
 
 
 # =========================================================
@@ -244,23 +323,41 @@ def remover_estoque(produto_id, quantidade):
 # =========================================================
 init_db()
 
-# Session state para mensagens de feedback
-for key in ["feedback_msg", "feedback_type", "confirmar_remocao_id"]:
+# Session state
+for key, default in [
+    ("feedback_msg", None),
+    ("feedback_type", None),
+    ("confirmar_remocao_id", None),
+    ("pagina", "🛒 Registro de Vendas"),
+    ("forma_pagamento", "Pix"),
+]:
     if key not in st.session_state:
-        st.session_state[key] = None
+        st.session_state[key] = default
 
 
 # =========================================================
-# SIDEBAR
+# SIDEBAR — botões clicáveis de navegação
 # =========================================================
-st.sidebar.title("☕ Cafeteria PDV")
-st.sidebar.markdown("---")
-pagina = st.sidebar.radio(
-    "Menu",
-    ["🛒 Registro de Vendas", "📦 Estoque", "📊 Relatório Financeiro"]
-)
-st.sidebar.markdown("---")
-st.sidebar.caption(f"Banco: `{os.path.basename(DB_PATH)}`")
+with st.sidebar:
+    st.markdown("## ☕ Cafeteria PDV")
+    st.markdown("---")
+
+    paginas = [
+        ("🛒 Registro de Vendas", "🛒 Registro de Vendas"),
+        ("📦 Estoque",            "📦 Estoque"),
+        ("📊 Relatório Financeiro","📊 Relatório Financeiro"),
+    ]
+
+    for label, valor in paginas:
+        tipo = "primary" if st.session_state.pagina == valor else "secondary"
+        if st.button(label, key=f"nav_{valor}", type=tipo, use_container_width=True):
+            st.session_state.pagina = valor
+            st.rerun()
+
+    st.markdown("---")
+    st.caption(f"Banco: `{os.path.basename(DB_PATH)}`")
+
+pagina = st.session_state.pagina
 
 
 # =========================================================
@@ -270,7 +367,6 @@ if pagina == "🛒 Registro de Vendas":
 
     st.title("🛒 Registro de Vendas")
 
-    # Exibe feedback da última ação
     if st.session_state.feedback_msg:
         fn = st.success if st.session_state.feedback_type == "success" else st.error
         fn(st.session_state.feedback_msg)
@@ -282,14 +378,11 @@ if pagina == "🛒 Registro de Vendas":
     if produtos_df.empty:
         st.warning("⚠️ Nenhum produto cadastrado. Acesse **Estoque** para adicionar produtos.")
     else:
-        # ---- Formulário de venda ----
         with st.container(border=True):
             st.subheader("Nova Venda")
 
             col1, col2 = st.columns([3, 2])
-
             with col1:
-                # Monta a lista do selectbox com nome + preço
                 opcoes = {
                     f"{r['nome']}  ·  R$ {r['preco']:.2f}": r
                     for _, r in produtos_df.iterrows()
@@ -309,39 +402,32 @@ if pagina == "🛒 Registro de Vendas":
                     disabled=(estoque_disp == 0)
                 )
 
-            # Formas de pagamento como botões de seleção visual
+            # Formas de pagamento como botões visuais
             st.markdown("**💳 Forma de Pagamento**")
             pagamentos = ["Pix", "Cartão de Débito", "Cartão de Crédito", "Dinheiro"]
-
-            if "forma_pagamento" not in st.session_state:
-                st.session_state.forma_pagamento = "Pix"
-
             cols_pag = st.columns(4)
             for i, forma in enumerate(pagamentos):
                 with cols_pag[i]:
-                    selecionado = st.session_state.forma_pagamento == forma
-                    estilo = "primary" if selecionado else "secondary"
-                    if st.button(forma, key=f"pag_{forma}", type=estilo):
+                    tipo = "primary" if st.session_state.forma_pagamento == forma else "secondary"
+                    if st.button(forma, key=f"pag_{forma}", type=tipo, use_container_width=True):
                         st.session_state.forma_pagamento = forma
                         st.rerun()
 
             st.markdown("---")
 
-            # Resumo do valor
             valor_total = preco_unit * quantidade
             col_r1, col_r2, col_r3 = st.columns(3)
-            col_r1.metric("Preço unitário", f"R$ {preco_unit:.2f}")
-            col_r2.metric("Quantidade", quantidade)
+            col_r1.metric("Preço Unitário", f"R$ {preco_unit:.2f}")
+            col_r2.metric("Quantidade", str(quantidade))
             col_r3.metric("💰 Total da Venda", f"R$ {valor_total:.2f}")
 
             st.markdown("")
 
-            # Botão de confirmar
             if estoque_disp == 0:
                 st.error("❌ Produto sem estoque disponível.")
             else:
                 if st.button(
-                    f"✅  Confirmar Venda · R$ {valor_total:.2f}  ({st.session_state.forma_pagamento})",
+                    f"✅  Confirmar Venda  ·  R$ {valor_total:.2f}  ({st.session_state.forma_pagamento})",
                     type="primary",
                     use_container_width=True
                 ):
@@ -355,24 +441,23 @@ if pagina == "🛒 Registro de Vendas":
                     st.session_state.feedback_type = "success" if sucesso else "error"
                     st.rerun()
 
-        # ---- Últimas 10 vendas ----
-        st.markdown("")
-        st.subheader("🕐 Últimas 10 Vendas")
-
-        vendas_df = carregar_vendas()
-        if vendas_df.empty:
-            st.info("Nenhuma venda registrada ainda.")
-        else:
-            ultimas = vendas_df.head(10)[
-                ["data_hora", "produto", "quantidade", "valor_total", "forma_pagamento"]
-            ].rename(columns={
-                "data_hora": "Data/Hora",
-                "produto": "Produto",
-                "quantidade": "Qtd.",
-                "valor_total": "Total (R$)",
-                "forma_pagamento": "Pagamento"
-            })
-            st.dataframe(ultimas, use_container_width=True, hide_index=True)
+    # Últimas 10 vendas
+    st.markdown("")
+    st.subheader("🕐 Últimas 10 Vendas")
+    vendas_df = carregar_vendas()
+    if vendas_df.empty:
+        st.info("Nenhuma venda registrada ainda.")
+    else:
+        ultimas = vendas_df.head(10)[
+            ["data_hora", "produto", "quantidade", "valor_total", "forma_pagamento"]
+        ].rename(columns={
+            "data_hora": "Data/Hora",
+            "produto": "Produto",
+            "quantidade": "Qtd.",
+            "valor_total": "Total (R$)",
+            "forma_pagamento": "Pagamento"
+        })
+        st.dataframe(ultimas, use_container_width=True, hide_index=True)
 
 
 # =========================================================
@@ -382,7 +467,6 @@ elif pagina == "📦 Estoque":
 
     st.title("📦 Gestão de Estoque")
 
-    # Feedback
     if st.session_state.feedback_msg:
         fn = st.success if st.session_state.feedback_type == "success" else st.error
         fn(st.session_state.feedback_msg)
@@ -391,14 +475,12 @@ elif pagina == "📦 Estoque":
 
     tab_lista, tab_novo = st.tabs(["📋 Produtos em Estoque", "➕ Cadastrar Novo Produto"])
 
-    # ---- ABA 1: Lista de produtos ----
     with tab_lista:
         produtos_df = carregar_produtos()
 
         if produtos_df.empty:
             st.info("Nenhum produto cadastrado. Use a aba ao lado para adicionar.")
         else:
-            # Alerta de estoque baixo
             baixo = produtos_df[produtos_df["estoque"] <= 5]
             if not baixo.empty:
                 nomes_baixo = ", ".join(baixo["nome"].tolist())
@@ -406,7 +488,6 @@ elif pagina == "📦 Estoque":
 
             st.markdown("---")
 
-            # Renderiza cada produto em um card com ações
             for _, row in produtos_df.iterrows():
                 pid = int(row["id"])
                 nome = row["nome"]
@@ -414,22 +495,20 @@ elif pagina == "📦 Estoque":
                 estoque_atual = int(row["estoque"])
 
                 with st.container(border=True):
-                    c1, c2, c3 = st.columns([3, 3, 2])
+                    c1, c2, c3 = st.columns([3, 4, 2])
 
                     with c1:
                         st.markdown(f"**{nome}**")
                         st.caption(f"R$ {preco:.2f} por unidade")
 
                     with c2:
-                        # Indicador visual de estoque
                         cor = "🟢" if estoque_atual > 10 else ("🟡" if estoque_atual > 0 else "🔴")
                         st.markdown(f"{cor} **Estoque:** {estoque_atual} unidades")
 
-                        # Botões de adicionar / remover quantidade
                         col_add, col_rem = st.columns(2)
                         with col_add:
                             qtd_add = st.number_input(
-                                "Adicionar", min_value=1, value=1, step=1,
+                                "Qtd", min_value=1, value=1, step=1,
                                 key=f"add_{pid}", label_visibility="collapsed"
                             )
                             if st.button("➕ Adicionar", key=f"btn_add_{pid}", use_container_width=True):
@@ -440,7 +519,7 @@ elif pagina == "📦 Estoque":
 
                         with col_rem:
                             qtd_rem = st.number_input(
-                                "Remover", min_value=1, value=1, step=1,
+                                "Qtd", min_value=1, value=1, step=1,
                                 key=f"rem_{pid}", label_visibility="collapsed"
                             )
                             if st.button("➖ Remover", key=f"btn_rem_{pid}", use_container_width=True):
@@ -452,53 +531,44 @@ elif pagina == "📦 Estoque":
                     with c3:
                         st.markdown("")
                         st.markdown("")
-                        # Botão de excluir o produto do sistema
                         if st.session_state.confirmar_remocao_id == pid:
-                            # Pede confirmação antes de deletar
-                            st.warning("Confirma exclusão?")
-                            col_sim, col_nao = st.columns(2)
-                            with col_sim:
+                            st.warning("Confirmar exclusão?")
+                            cs, cn = st.columns(2)
+                            with cs:
                                 if st.button("✔ Sim", key=f"sim_{pid}", use_container_width=True):
                                     remover_produto(pid)
                                     st.session_state.confirmar_remocao_id = None
                                     st.session_state.feedback_msg = f"'{nome}' removido do sistema."
                                     st.session_state.feedback_type = "success"
                                     st.rerun()
-                            with col_nao:
+                            with cn:
                                 if st.button("✖ Não", key=f"nao_{pid}", use_container_width=True):
                                     st.session_state.confirmar_remocao_id = None
                                     st.rerun()
                         else:
-                            if st.button(
-                                "🗑️ Excluir Produto",
-                                key=f"del_{pid}",
-                                use_container_width=True,
-                                type="secondary"
-                            ):
+                            if st.button("🗑️ Excluir", key=f"del_{pid}",
+                                         use_container_width=True, type="secondary"):
                                 st.session_state.confirmar_remocao_id = pid
                                 st.rerun()
 
-    # ---- ABA 2: Cadastrar novo produto ----
     with tab_novo:
         st.subheader("Cadastrar Novo Produto")
         with st.form("form_novo_produto", clear_on_submit=True):
             nome_novo = st.text_input("Nome do produto", placeholder="Ex: Cappuccino")
             col_p, col_e = st.columns(2)
             with col_p:
-                preco_novo = st.number_input(
-                    "Preço (R$)", min_value=0.01, step=0.50,
-                    format="%.2f", value=5.00
-                )
+                preco_novo = st.number_input("Preço (R$)", min_value=0.01,
+                                             step=0.50, format="%.2f", value=5.00)
             with col_e:
-                estoque_novo = st.number_input(
-                    "Estoque inicial (unidades)", min_value=0, step=1, value=0
-                )
-
-            if st.form_submit_button("✅ Cadastrar Produto", type="primary", use_container_width=True):
+                estoque_novo = st.number_input("Estoque inicial", min_value=0,
+                                               step=1, value=0)
+            if st.form_submit_button("✅ Cadastrar Produto", type="primary",
+                                     use_container_width=True):
                 if not nome_novo.strip():
                     st.error("Informe o nome do produto.")
                 else:
-                    ok, msg = cadastrar_produto(nome_novo.strip(), float(preco_novo), int(estoque_novo))
+                    ok, msg = cadastrar_produto(nome_novo.strip(),
+                                                float(preco_novo), int(estoque_novo))
                     st.session_state.feedback_msg = msg
                     st.session_state.feedback_type = "success" if ok else "error"
                     st.rerun()
@@ -514,21 +584,22 @@ elif pagina == "📊 Relatório Financeiro":
     vendas_df = carregar_vendas()
 
     if vendas_df.empty:
-        st.info("Nenhuma venda registrada ainda. O relatório aparecerá assim que houver vendas.")
+        st.info("Nenhuma venda registrada ainda.")
     else:
         vendas_df["data_hora"] = pd.to_datetime(vendas_df["data_hora"])
         vendas_df["data"] = vendas_df["data_hora"].dt.date
 
-        # Filtro de período
         with st.container(border=True):
             st.markdown("**🗓️ Filtrar por período**")
             col_d1, col_d2 = st.columns(2)
             data_min = vendas_df["data"].min()
             data_max = vendas_df["data"].max()
             with col_d1:
-                data_inicio = st.date_input("De", value=data_min, min_value=data_min, max_value=data_max)
+                data_inicio = st.date_input("De", value=data_min,
+                                            min_value=data_min, max_value=data_max)
             with col_d2:
-                data_fim = st.date_input("Até", value=data_max, min_value=data_min, max_value=data_max)
+                data_fim = st.date_input("Até", value=data_max,
+                                         min_value=data_min, max_value=data_max)
 
         df = vendas_df[
             (vendas_df["data"] >= data_inicio) & (vendas_df["data"] <= data_fim)
@@ -536,19 +607,18 @@ elif pagina == "📊 Relatório Financeiro":
 
         st.markdown("---")
 
-        # Métricas principais
-        faturamento = df["valor_total"].sum()
-        qtd_vendas = len(df)
+        # Métricas
+        faturamento  = df["valor_total"].sum()
+        qtd_vendas   = len(df)
         ticket_medio = faturamento / qtd_vendas if qtd_vendas > 0 else 0
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("💰 Faturamento Total", f"R$ {faturamento:.2f}")
-        col2.metric("🧾 Nº de Vendas", qtd_vendas)
-        col3.metric("📈 Ticket Médio", f"R$ {ticket_medio:.2f}")
+        col1.metric("💰 Faturamento Total", f"R$ {faturamento:,.2f}")
+        col2.metric("🧾 Número de Vendas",  str(qtd_vendas))
+        col3.metric("📈 Ticket Médio",      f"R$ {ticket_medio:,.2f}")
 
         st.markdown("---")
 
-        # Resumo por forma de pagamento
         st.subheader("💳 Recebimentos por Forma de Pagamento")
         resumo_pag = (
             df.groupby("forma_pagamento")["valor_total"]
@@ -565,7 +635,6 @@ elif pagina == "📊 Relatório Financeiro":
 
         st.markdown("---")
 
-        # Produtos mais vendidos
         st.subheader("🏆 Produtos Mais Vendidos")
         resumo_prod = (
             df.groupby("produto")
@@ -578,23 +647,22 @@ elif pagina == "📊 Relatório Financeiro":
 
         st.markdown("---")
 
-        # Histórico detalhado
         st.subheader("📋 Histórico Detalhado")
         historico = (
-            df[["data_hora", "produto", "quantidade", "valor_unitario", "valor_total", "forma_pagamento"]]
+            df[["data_hora", "produto", "quantidade",
+                "valor_unitario", "valor_total", "forma_pagamento"]]
             .rename(columns={
-                "data_hora": "Data/Hora",
-                "produto": "Produto",
-                "quantidade": "Qtd.",
-                "valor_unitario": "Vlr. Unit. (R$)",
-                "valor_total": "Vlr. Total (R$)",
-                "forma_pagamento": "Pagamento"
+                "data_hora":        "Data/Hora",
+                "produto":          "Produto",
+                "quantidade":       "Qtd.",
+                "valor_unitario":   "Vlr. Unit. (R$)",
+                "valor_total":      "Vlr. Total (R$)",
+                "forma_pagamento":  "Pagamento"
             })
             .sort_values("Data/Hora", ascending=False)
         )
         st.dataframe(historico, use_container_width=True, hide_index=True)
 
-        # Exportar CSV
         st.markdown("")
         csv = df.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
